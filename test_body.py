@@ -31,14 +31,14 @@ password_remote = "system"
 
 ########################### Function to return dir size ##################################
 
-def get_size(path):
-    total = 0
-    for dirpath, dirnames, files in os.walk(path):
-        for i in files:
-            f = os.path.join(dirpath, i)
+# def get_size(path):
+#     total = 0
+#     for dirpath, dirnames, files in os.walk(path):
+#         for i in files:
+#             f = os.path.join(dirpath, i)
             
-            total += os.path.getsize(f)
-    return total
+#             total += os.path.getsize(f)
+#     return total
 
 
 #########################################################################################
@@ -46,10 +46,10 @@ def get_size(path):
 def detect(frame):
     cordinates, weights =  HOGCV.detectMultiScale(frame, winStride = (4, 4), padding = (8, 8), scale = 1.03)
     orig = frame.copy()
-    # person = 0
-    # for x,y,w,h in cordinates:
-    #     cv2.rectangle(orig, (x,y), (x+w,y+h), (0,255,0), 2)
-    #     person += 1
+    person = 0
+    for x,y,w,h in cordinates:
+        cv2.rectangle(orig, (x,y), (x+w,y+h), (0,255,0), 2)
+        person += 1
 
     # apply non-maxima suppression to the bounding boxes using a
 	# fairly large overlap threshold to try to maintain overlapping
@@ -64,7 +64,7 @@ def detect(frame):
     # cv2.putText(frame, f'Total Persons : {person-1}', (40,70), cv2.FONT_HERSHEY_DUPLEX, 0.8, (255,0,0), 2)
     # cv2.imshow('output', frame)
 
-    return [frame, pick, orig]
+    return [frame, pick]
 
 
 ###########################################################
@@ -87,7 +87,7 @@ def cropify(image, rects):
 #################################################################################
 def main():
     main_start = time.time()
-    current_dt = dt.datetime.now()
+    # current_dt = dt.datetime.now()
     src = "rtsp://"+username+":"+password+"@"+ip+":"+port+"/"+stream
 
     #############################################################################
@@ -96,62 +96,56 @@ def main():
     
     count = 0
 
-    path = os.getcwd()
+    # path = os.getcwd()
     # Make Main Data folder
-    print("Creating Directories")
-    dataDir = os.path.join(path, "data") 
+    # print("Creating Directories")
+    # dataDir = os.path.join(path, "data") 
     
     # make directories
-    try:
-        os.mkdir(dataDir)
-    except OSError as error:
-        print(error)
+    # try:
+    #     os.mkdir(dataDir)
+    # except OSError as error:
+    #     print(error)
 
-    dataPath = os.path.join(dataDir, current_dt.strftime("%Y-%m-%d-%H-%M-%S"))
-    os.mkdir(dataPath)
+    # dataPath = os.path.join(dataDir, current_dt.strftime("%Y-%m-%d-%H-%M-%S"))
+    # os.mkdir(dataPath)
     start = time.time()
     print("Starts recording")
     
-    detected = []
-
     while(cap.isOpened()):
         current = time.time()
         ret, frame = cap.read()
-        filename_root = current_dt.strftime("%Y-%m-%d-%H-%M-%S")+str(count)
-        # filePath = os.path.join(dataPath, filename)
+        # filename_root = current_dt.strftime("%Y-%m-%d-%H-%M-%S")+str(count)
+        # # filePath = os.path.join(dataPath, filename)
 
-        filePath =  os.path.join(dataPath, filename_root)
-        
+        # filePath =  os.path.join(dataPath, filename_root)
+
         if ret == True:
-            time.sleep(0.75)
-            # frame = cv2.resize(frame, (1024, 576))
-            # if math.floor(current - start) % 5 == 0:
-            orig = frame.copy()
+            # orig = frame.copy()
             count += 1
-            # frame = cv2.resize(frame, (1280, 720), interpolation = cv2.INTER_LINEAR)
-
-            cv2.imwrite(filePath+"-original.png" , frame)
             detections = detect(frame)
             
             rects = detections[1]
             img = detections[0]
-            # cv2.imwrite(filePath_alt, img)
-            detected.append(len(rects))
-            if len(rects) > 0:
-                cropped = cropify(orig, rects)
-                print("Detected: ", len(cropped))
-                inner_count = 0
+            
+            cv2.imshow("Detections", img)
+            print(rects)
+            
+            # if len(rects) > 0:
+            #     cropped = cropify(orig, rects)
+            #     print("Detected: ", len(cropped))
+            #     inner_count = 0
                 
-                # Writing positive samples
-                for img in cropped:
-                    # cv2.imshow("Resized "+str(count), img)
-                    inner_count += 1
-                    fileName = filePath+str(inner_count)+"-cropped.png"
-                    #if abspath is not None:
-                    try:
-                        cv2.imwrite(fileName, img)
-                    except Exception as e:
-                        print(e)
+            #     # Writing positive samples
+            #     for img in cropped:
+            #         # cv2.imshow("Resized "+str(count), img)
+            #         inner_count += 1
+            #         fileName = filePath+str(inner_count)+"-cropped.png"
+            #         #if abspath is not None:
+            #         try:
+            #             cv2.imwrite(fileName, img)
+            #         except Exception as e:
+            #             print(e)
 
             if math.floor(current - start) > DURATION:
                 break
@@ -165,36 +159,36 @@ def main():
     cap.release()
     print("Ends recording")
     #############################################################################
-    print("Compressing...")
+    # print("Compressing...")
     
 
-    shutil.make_archive(dataPath, 'zip', dataPath)
+    # shutil.make_archive(dataPath, 'zip', dataPath)
 
 
-    #############################################################################
-    print("Sending to Raiyan")
-    try:
-        with pysftp.Connection(ip_remote, username=username_remote, password=password_remote) as sftp:
-            with sftp.cd('dataPayload'):
-                sftp.put(remotepath="",localpath=dataPath+".zip")
+    # #############################################################################
+    # print("Sending to Raiyan")
+    # try:
+    #     with pysftp.Connection(ip_remote, username=username_remote, password=password_remote) as sftp:
+    #         with sftp.cd('dataPayload'):
+    #             sftp.put(remotepath="",localpath=dataPath+".zip")
         
-    except Exception as e:
-        print(e)
-    #############################################################################
+    # except Exception as e:
+    #     print(e)
+    # #############################################################################
 
-    try:
-        # Clear Storage upto a certain limit
-        print("Directory size: "+str(math.floor(get_size(dataDir) / (1024*1024)))+" MB")
-        if math.floor(get_size(dataPath) / (1024*1024)) > MAX_STORAGE:
-            print("Clearing Storage, exceeded MAX LIMIT: "+str(MAX_STORAGE))
-            shutil.rmtree(dataPath)
-    except Exception as e:
-        print(e)
+    # try:
+    #     # Clear Storage upto a certain limit
+    #     print("Directory size: "+str(math.floor(get_size(dataDir) / (1024*1024)))+" MB")
+    #     if math.floor(get_size(dataPath) / (1024*1024)) > MAX_STORAGE:
+    #         print("Clearing Storage, exceeded MAX LIMIT: "+str(MAX_STORAGE))
+    #         shutil.rmtree(dataPath)
+    # except Exception as e:
+    #     print(e)
 
     #############################################################################
     main_end = time.time()
     print("Elapsed: "+str(math.floor(main_end - main_start))+" s")
-    print("Average Traffic: " + str(math.round(sum(detected) / len(detected))))
+
 if __name__ == "__main__":
     HOGCV = cv2.HOGDescriptor()
     HOGCV.setSVMDetector(cv2.HOGDescriptor_getDefaultPeopleDetector())
